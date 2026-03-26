@@ -1,49 +1,52 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-/// <summary>
-/// ติดกับ Goal GameObject
-/// - Collider ต้องเป็น Is Trigger = true
-/// - Ball ต้องมี Tag = "Ball"
-/// </summary>
 public class GoalZone : MonoBehaviour
 {
     [Header("Score")]
     public int scoreReward = 100;
 
-    [Header("Next Scene")]
-    [Tooltip("ชื่อ Scene ถัดไป ถ้าปล่อยว่างจะ Load Scene ถัดไปใน Build Settings")]
-    public string nextSceneName = "";
+    [Header("Goal Settings")]
+    public bool requireAllGoals = true;
 
-    [Header("Visual Feedback")]
+    [Header("Visual (optional)")]
     public ParticleSystem celebrationParticles;
+
+    private bool isReached = false;
 
     void OnTriggerEnter(Collider other)
     {
-        // Debug ช่วย log ว่ามีอะไรเข้า Trigger
-        Debug.Log($"GoalZone: {other.gameObject.name} tag={other.tag} เข้า Trigger");
-
         if (!other.CompareTag("Ball")) return;
+        if (isReached) return;
 
-        Debug.Log("Goal!");
+        isReached = true;
+        Debug.Log("GoalZone: Ball เข้า Goal!");
 
         if (celebrationParticles != null)
             celebrationParticles.Play();
 
-        GameManager.Instance?.AddScore(scoreReward);
-        GameManager.Instance?.TriggerWin();
+        var rend = GetComponent<Renderer>();
+        if (rend != null) rend.material.color = Color.gray;
 
-        // ถ้าไม่มี GameManager ให้ Load Scene ตรงๆ เลย
-        if (GameManager.Instance == null)
+        if (GameManager.Instance != null)
+            GameManager.Instance.AddScore(scoreReward);
+
+        if (GoalManager.Instance != null)
         {
-            Invoke(nameof(LoadNext), 1.5f);
+            Debug.Log("GoalZone: แจ้ง GoalManager");
+            GoalManager.Instance.OnGoalReached(requireAllGoals);
+        }
+        else
+        {
+            Debug.LogWarning("GoalZone: ไม่พบ GoalManager! Win ตรงๆ");
+            Invoke(nameof(WinDirect), 1.5f);
         }
     }
 
-    void LoadNext()
+    void WinDirect()
     {
-        if (!string.IsNullOrEmpty(nextSceneName))
-            SceneManager.LoadScene(nextSceneName);
+        if (GameManager.Instance != null)
+            GameManager.Instance.TriggerWin();
         else
         {
             int next = SceneManager.GetActiveScene().buildIndex + 1;
