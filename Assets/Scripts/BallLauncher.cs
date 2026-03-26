@@ -166,7 +166,8 @@ public class BallLauncher : MonoBehaviour
             return;
         }
 
-        currentBall = Instantiate(ballPrefab, launchPoint.position, Quaternion.identity);
+        // ใช้ rotation ของ Prefab แทน Quaternion.identity
+        currentBall = Instantiate(ballPrefab, launchPoint.position, ballPrefab.transform.rotation);
         currentBall.OnDead += OnBallDead;
         isDragging = false;
 
